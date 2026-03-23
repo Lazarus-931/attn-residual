@@ -20,9 +20,9 @@ class ModelArg:
   with [Deepseek et al](https://arxiv.org/abs/2502.16982). Configured
   to run as efficient as possible on a single v6 TPU.
   """
-  # Model dimensions
+  # Model dimensions (~310M total, ~120M active/token)
   dim: int = 1024
-  inter_dim: int = 2048
+  inter_dim: int = 1536
   heads: int = 8
   local_heads: int = 8
   head_dim: int = 128
@@ -37,17 +37,17 @@ class ModelArg:
   v_head_dim: int = 128
 
   # MoE
-  n_routed_experts: int = 256
-  n_activated_experts: int = 8
-  n_groups: int = 8
-  topk_groups: int = 4
+  n_routed_experts: int = 4
+  n_activated_experts: int = 2
+  n_groups: int = 1
+  topk_groups: int = 1
   shared_experts: int = 1
   score_func: Literal['softmax', 'sigmoid'] = 'sigmoid'
   scaling_factor: float = 2.446
 
   # Architecture
-  n_layer_groups: int = 7      # each group = 3 Bottom + 1 Top = 28 layers total
-  block_size: int = 128
+  n_layer_groups: int = 3      # each group = 3 Bottom + 1 Top = 12 layers total
+  block_size: int = 512
   max_seq: int = 4096
 
   # Training
@@ -413,14 +413,28 @@ class multihead_attn(nn.Module):
         k_pe[:, :, None, :],
         (batch, seqlen, self.local_heads, self.qk_rope_head_dim))], axis=-1)
 
-    # Attention scores
-    scores = jnp.einsum("bshd,bthd->bsht", q, k) * self.softmax_scale
-
+    attn_bias = None
+    attn_mask = None
     if mask is not None:
-      scores = scores + mask[None, :, :]
-    scores = jax.nn.softmax(scores.astype(jnp.float32), axis=-1).astype(x.dtype)
+      if mask.dtype == jnp.bool_:
+        attn_mask = mask
+      else:
+        # Treat the existing mask argument as an additive attention bias.
+        if mask.ndim == 2:
+          attn_bias = mask[None, None, :, :]
+        else:
+          attn_bias = mask
 
-    out = jnp.einsum("bsht,bthd->bshd", scores, v)
+    out = jax.nn.dot_product_attention(
+        q,
+        k,
+        v,
+        bias=attn_bias,
+        mask=attn_mask,
+        scale=self.softmax_scale,
+        is_causal=True,
+        implementation="cudnn",
+    )
     return self.wo(out.reshape(batch, seqlen, -1))
 
 
@@ -966,3 +980,5 @@ def cosine_lr(step, max_lr, min_lr, warmup_steps, total_steps):
     cosine_lr = min_lr + 0.5 * (max_lr - min_lr) * (1 + jnp.cos(jnp.pi * progress))
 
     return jnp.where(step < warmup_steps, warmup_lr, cosine_lr)
+
+
