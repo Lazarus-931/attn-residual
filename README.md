@@ -31,3 +31,8 @@ Some questions I also explore in this small-scale experimentation sprint:
 3. Is AttenRes using many layers or colapsing into one instead(high vs low entropy)?
 
 Further things to possibly explore: Muon vs AdamW vs Prodigy | WSD vs Cosine | What if Attention Residual per Top and Bottom Block instead of between each attn and moe layer?
+
+
+## Note
+
+I actually switched to H100 since I found out I able to cut my training time x2
