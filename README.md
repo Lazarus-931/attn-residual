@@ -2,7 +2,7 @@
 
 # Attention Residuals
 
-This is a small-scale replication of [Attention Residual](https://arxiv.org/abs/2603.15031) on a single v6 TPU. This will create, run and benchmark standard Kimi Linear against Kimi Linear with Attention Residuals(Full/Block) with identical configurations.
+This is a small-scale replication of [Attention Residual](https://arxiv.org/abs/2603.15031) on a ~single v6 TPU~ ~a single H100~ single h200. This will create, run and benchmark standard Kimi Linear against Kimi Linear with Attention Residuals(Full/Block) with identical configurations.
 
 Specifications:
 - 300M Param Model
@@ -12,7 +12,7 @@ Specifications:
 (Soon to change)
 
 
-There will be a Kimi Linear baseline and a (+ AttnRes) variant. They will be trained individually across a single v6 TPU using jax, looking to verify and see the supposed benefit of AttnResiduals from the paper.
+There will be a Kimi Linear baseline and a (+ AttnRes) variant. They will be trained individually across a single v6 ~TPU~ h200 using jax, looking to verify and see the supposed benefit of AttnResiduals from the paper.
 
 
 Pre-training occurs using 4090-context window, Muon[1] and a WSG(Warmup-Stable-Decay) learning rate schedule with a gloabl batch size of 8M tokens.
